@@ -94,6 +94,7 @@ namespace Checkers
             currPieceSelected = null;
         }
 
+        //Move to Square
         private void Square_Tapped(object sender, EventArgs e)
         {
             //is there a current piece selected
@@ -102,6 +103,23 @@ namespace Checkers
 
             //Move current piece
             BoxView currB = (BoxView)sender;
+
+            //Can only Move diagonally
+            int sq_r, sq_c, piece_Row, piece_Col;
+
+            sq_r = (int)currB.GetValue(Grid.RowProperty);
+            sq_c = (int)currB.GetValue(Grid.ColumnProperty);
+
+            //Piece Place
+            piece_Row = (int)currPieceSelected.GetValue(Grid.RowProperty);
+            piece_Col = (int)currPieceSelected.GetValue(Grid.ColumnProperty);
+
+            //Only for Upwards
+            //If Trying to move more than 1 Diagonally away- Return
+            if (sq_r + 1 != piece_Row) return;
+            if ((sq_c - 1 != piece_Col) && (sq_c + 1 != piece_Col)) return;
+
+            //Get and Set Grid properties
             currPieceSelected.SetValue(Grid.RowProperty, currB.GetValue(Grid.RowProperty));
             currPieceSelected.SetValue(Grid.ColumnProperty, currB.GetValue(Grid.ColumnProperty));
             currPieceSelected.BackgroundColor = Color.Red;
@@ -125,12 +143,14 @@ namespace Checkers
             {
                 currB.BackgroundColor = Color.Blue;
                 currB.StyleId = "Blue";
+                currPieceSelected = currB;
             }
 
             else if (currB.StyleId == "Blue")
             {
                 currB.BackgroundColor = Color.Red;
                 currB.StyleId = "Red";
+                currPieceSelected = null;
             }
         }
     }
