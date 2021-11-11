@@ -76,10 +76,11 @@ namespace Checkers
             //Put a single boxview on the board - One piece in the Game
             BoxView b;
 
-            //Loop for Black Pieces
-            for(r = 0; r < 3; r++)
+            #region Loop for Pieces
+            //Loop for Pieces
+            for (r = 0; r < 3; r++)
             {
-                //c is the index in _startBlack array
+                //c is the index in array
                 for(c = 0; c < 4; c++)
                 {
                     //Create Pieces
@@ -101,6 +102,7 @@ namespace Checkers
                     //Add Boxview to collection Children on the grid
                     GrdGameLayout.Children.Add(b);
                 }
+                #endregion
             }
         }//End Create Piece
 
@@ -154,7 +156,7 @@ namespace Checkers
                 return;
 
             //Move current piece
-            BoxView currB = (BoxView)sender;
+            BoxView currSq = (BoxView)sender;
 
             //Can only Move diagonally
             int sq_r, sq_c, piece_Row, piece_Col;
@@ -163,13 +165,17 @@ namespace Checkers
             if (currPieceSelected.StyleId == "BlackPiece")
                 multiplier = 1;//Moving up
 
+            #region MoveThePiece
             //Where Trying to move to
-            sq_r = (int)currB.GetValue(Grid.RowProperty);
-            sq_c = (int)currB.GetValue(Grid.ColumnProperty);
+            sq_r = (int)currSq.GetValue(Grid.RowProperty);
+            sq_c = (int)currSq.GetValue(Grid.ColumnProperty);
 
             //Piece Place
             piece_Row = (int)currPieceSelected.GetValue(Grid.RowProperty);
             piece_Col = (int)currPieceSelected.GetValue(Grid.ColumnProperty);
+
+            //Square Occupied
+            if (IsSquareOccupied(sq_r, sq_c) == true) return;
 
             //Only for Upwards
             //If Trying to move more than 1 Diagonally away- Return
@@ -177,8 +183,8 @@ namespace Checkers
             if ((sq_c - 1 != piece_Col) && (sq_c + 1 != piece_Col)) return;
 
             //Get and Set Grid properties
-            currPieceSelected.SetValue(Grid.RowProperty, currB.GetValue(Grid.RowProperty));
-            currPieceSelected.SetValue(Grid.ColumnProperty, currB.GetValue(Grid.ColumnProperty));
+            currPieceSelected.SetValue(Grid.RowProperty, currSq.GetValue(Grid.RowProperty));
+            currPieceSelected.SetValue(Grid.ColumnProperty, currSq.GetValue(Grid.ColumnProperty));
 
             //Reset Piece back
             //White
@@ -192,9 +198,35 @@ namespace Checkers
             {
                 currPieceSelected.BackgroundColor = Color.Red;
             }
+            #endregion
 
             //Then set current selected to null
             currPieceSelected = null;
+        }
+
+        //Square Occupied
+        private bool IsSquareOccupied(int sq_r, int sq_c)
+        {
+            //Check all Pieces on grid and check if trying to move there
+            //Not Occupied
+            bool isOccupied = false;
+
+            //Is Occupied
+            foreach(var piece in GrdGameLayout.Children)
+            {
+                //Check if a piece not a square- as squares are also children
+                if(piece.StyleId.Contains("Piece"))
+                {
+                    //If a piece is on the square
+                    if(sq_r == (int)piece.GetValue(Grid.RowProperty) && sq_c == (int)piece.GetValue(Grid.ColumnProperty))
+                    {
+                        isOccupied = true;
+                        break;
+                    }
+                }
+            }
+
+            return isOccupied;
         }
 
         //Tapped Event
