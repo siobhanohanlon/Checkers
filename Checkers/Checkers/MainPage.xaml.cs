@@ -14,6 +14,15 @@ namespace Checkers
         const int NUM_ROWS = 10, NUM_COLS = 10; //Game SetUP
         const int BOARD_ROWS = 8, BOARD_COLS = 8; //Game Board
 
+        //Global Variables for Starting Positions
+        int[][] _startBlack = new int[3][] { new int[] {2, 4, 6, 8}, 
+                                             new int[] {3, 5, 7, 9}, 
+                                             new int[] {2, 4, 6, 8} };
+
+        int[][] _startWhite = new int[3][] { new int[] {3, 5, 7, 9},
+                                             new int[] {2, 4, 6, 8},
+                                             new int[] {3, 5, 7, 9 } };
+
         BoxView currPieceSelected;
 
         public MainPage()
@@ -26,14 +35,52 @@ namespace Checkers
         private void SetUpBoard()
         {
             //Declare Variables
-            int i, r, c;
+            int i;
 
             //Set up 10 Columns and 10 Rows to Grid in Xaml
-            for(i = 0; i < NUM_COLS; i++)
+            for (i = 0; i < NUM_COLS; i++)
             {
                 GrdGameLayout.ColumnDefinitions.Add(new ColumnDefinition());
                 GrdGameLayout.RowDefinitions.Add(new RowDefinition());
             }//Can Put together as Board a Square
+
+            //Create Squares and Pieces on Board
+            CreateSquaresOnBoard();
+            CreatePlayerPieces();
+
+            //Just to Clear
+            currPieceSelected = null;
+        }
+
+        //Create Player Pieces
+        private void CreatePlayerPieces()
+        {
+            //Tapped Gesture
+            TapGestureRecognizer t = new TapGestureRecognizer();
+            t.NumberOfTapsRequired = 1;
+            t.Tapped += Piece_Tapped; //Creating Event Handler
+
+            //Put a single boxview on the board - One piece in the Game
+            BoxView b = new BoxView();
+            b.BackgroundColor = Color.Red;
+            b.StyleId = "Piece";
+            b.HorizontalOptions = LayoutOptions.Center;
+            b.VerticalOptions = LayoutOptions.Center;
+            b.HeightRequest = 40;
+            b.WidthRequest = 40;
+            b.CornerRadius = 20;
+            b.SetValue(Grid.RowProperty, 8);
+            b.SetValue(Grid.ColumnProperty, 3);
+            b.GestureRecognizers.Add(t);
+
+            //Add Boxview to collection Children on the grid
+            GrdGameLayout.Children.Add(b);
+        }
+
+        private void CreateSquaresOnBoard()
+        {
+            //Declare Variables
+            int r, c;
 
             //Put Squares on the Board- Boxviews
             //Board starts at Col 1, Row 1 for 8 in each direction
@@ -43,9 +90,9 @@ namespace Checkers
             TapGestureRecognizer t_sq = new TapGestureRecognizer();
             t_sq.NumberOfTapsRequired = 1;
             t_sq.Tapped += Square_Tapped;
-            
+
             //Create Black Game Squares
-            for(r = 1; r < BOARD_ROWS + 1; r++)
+            for (r = 1; r < BOARD_ROWS + 1; r++)
             {
                 for (c = 1; c < BOARD_COLS + 1; c++)
                 {
@@ -60,7 +107,7 @@ namespace Checkers
                         //Tap Gesture
                         sq.GestureRecognizers.Add(t_sq);
                     }
-                    
+
                     //Set Grid Values
                     sq.SetValue(Grid.RowProperty, r);
                     sq.SetValue(Grid.ColumnProperty, c);
@@ -68,30 +115,6 @@ namespace Checkers
                     GrdGameLayout.Children.Add(sq);
                 }
             }
-
-            //Tapped Gesture
-            TapGestureRecognizer t = new TapGestureRecognizer();
-            t.NumberOfTapsRequired = 1;
-            t.Tapped += Piece_Tapped; //Creating Event Handler
-
-            //Put a single boxview on the board - One piece in the Game
-            BoxView b = new BoxView();
-            b.BackgroundColor = Color.Red;
-            b.StyleId = "Red";
-            b.HorizontalOptions = LayoutOptions.Center;
-            b.VerticalOptions = LayoutOptions.Center;
-            b.HeightRequest = 40;
-            b.WidthRequest = 40;
-            b.CornerRadius = 20;
-            b.SetValue(Grid.RowProperty, 8);
-            b.SetValue(Grid.ColumnProperty, 3);
-            b.GestureRecognizers.Add(t);
-
-            //Add Boxview to collection Children on the grid
-            GrdGameLayout.Children.Add(b);
-
-            //Just to Clear
-            currPieceSelected = null;
         }
 
         //Move to Square
