@@ -15,13 +15,13 @@ namespace Checkers
         const int BOARD_ROWS = 8, BOARD_COLS = 8; //Game Board
 
         //Global Variables for Starting Positions
-        int[][] _startBlack = new int[3][] { new int[] {2, 4, 6, 8}, 
-                                             new int[] {3, 5, 7, 9}, 
-                                             new int[] {2, 4, 6, 8} };
+        int[][] _startBlack = new int[3][] { new int[] {1, 3, 5, 7}, 
+                                             new int[] {2, 4, 6, 8}, 
+                                             new int[] {1, 3, 5, 7 } };
 
-        int[][] _startWhite = new int[3][] { new int[] {3, 5, 7, 9},
-                                             new int[] {2, 4, 6, 8},
-                                             new int[] {3, 5, 7, 9 } };
+        int[][] _startWhite = new int[3][] { new int[] {2, 4, 6, 8},
+                                             new int[] {1, 3, 5, 7},
+                                             new int[] {2, 4, 6, 8} };
 
         BoxView currPieceSelected;
 
@@ -46,37 +46,66 @@ namespace Checkers
 
             //Create Squares and Pieces on Board
             CreateSquaresOnBoard();
-            CreatePlayerPieces();
+            //Black Pieces
+            CreatePlayerPieces(Color.Red,
+                               "BlackPiece",
+                               _startBlack,
+                               6);
+            //White Pieces
+            CreatePlayerPieces(Color.White,
+                               "WhitePiece",
+                               _startWhite,
+                               1);
 
             //Just to Clear
             currPieceSelected = null;
         }
 
         //Create Player Pieces
-        private void CreatePlayerPieces()
+        private void CreatePlayerPieces(Color colour, string styleID, 
+                                        int[][] startPosition, int startRow)
         {
+            //Declare Variables
+            int r, c;
+
             //Tapped Gesture
             TapGestureRecognizer t = new TapGestureRecognizer();
             t.NumberOfTapsRequired = 1;
             t.Tapped += Piece_Tapped; //Creating Event Handler
 
             //Put a single boxview on the board - One piece in the Game
-            BoxView b = new BoxView();
-            b.BackgroundColor = Color.Red;
-            b.StyleId = "Piece";
-            b.HorizontalOptions = LayoutOptions.Center;
-            b.VerticalOptions = LayoutOptions.Center;
-            b.HeightRequest = 40;
-            b.WidthRequest = 40;
-            b.CornerRadius = 20;
-            b.SetValue(Grid.RowProperty, 8);
-            b.SetValue(Grid.ColumnProperty, 3);
-            b.GestureRecognizers.Add(t);
+            BoxView b;
 
-            //Add Boxview to collection Children on the grid
-            GrdGameLayout.Children.Add(b);
-        }
+            //Loop for Black Pieces
+            for(r = 0; r < 3; r++)
+            {
+                //c is the index in _startBlack array
+                for(c = 0; c < 4; c++)
+                {
+                    //Create Pieces
+                    b = new BoxView();
+                    b.BackgroundColor = colour;
+                    b.StyleId = styleID;
+                    b.HorizontalOptions = LayoutOptions.Center;
+                    b.VerticalOptions = LayoutOptions.Center;
+                    b.HeightRequest = 40;
+                    b.WidthRequest = 40;
+                    b.CornerRadius = 20;
 
+                    //Piece Grid Properties
+                    b.SetValue(Grid.RowProperty, r + startRow);
+                    b.SetValue(Grid.ColumnProperty, startPosition[r][c]);
+
+                    b.GestureRecognizers.Add(t);
+
+                    //Add Boxview to collection Children on the grid
+                    GrdGameLayout.Children.Add(b);
+                }
+            }
+        }//End Create Piece
+
+
+        //Create Squares on Board
         private void CreateSquaresOnBoard()
         {
             //Declare Variables
@@ -129,7 +158,12 @@ namespace Checkers
 
             //Can only Move diagonally
             int sq_r, sq_c, piece_Row, piece_Col;
+            int multiplier = -1;//Default moving down
 
+            if (currPieceSelected.StyleId == "BlackPiece")
+                multiplier = 1;//Moving up
+
+            //Where Trying to move to
             sq_r = (int)currB.GetValue(Grid.RowProperty);
             sq_c = (int)currB.GetValue(Grid.ColumnProperty);
 
@@ -139,14 +173,25 @@ namespace Checkers
 
             //Only for Upwards
             //If Trying to move more than 1 Diagonally away- Return
-            if (sq_r + 1 != piece_Row) return;
+            if (sq_r + (1 * multiplier) != piece_Row) return;
             if ((sq_c - 1 != piece_Col) && (sq_c + 1 != piece_Col)) return;
 
             //Get and Set Grid properties
             currPieceSelected.SetValue(Grid.RowProperty, currB.GetValue(Grid.RowProperty));
             currPieceSelected.SetValue(Grid.ColumnProperty, currB.GetValue(Grid.ColumnProperty));
-            currPieceSelected.BackgroundColor = Color.Red;
-            currPieceSelected.StyleId = "Red";
+
+            //Reset Piece back
+            //White
+            if (currPieceSelected.StyleId.Contains("White"))
+            {
+                currPieceSelected.BackgroundColor = Color.White;
+            }
+
+            //Black
+            if (currPieceSelected.StyleId.Contains("Black"))
+            {
+                currPieceSelected.BackgroundColor = Color.Red;
+            }
 
             //Then set current selected to null
             currPieceSelected = null;
@@ -158,22 +203,31 @@ namespace Checkers
             //Tap was added to boxview
             BoxView currB = (BoxView)sender;
 
-            //Save current piece selected
-            currPieceSelected = currB;
-
-            //Decide what to do when tapped
-            if (currB.StyleId == "Red")
+            //Select Piece
+            if(currPieceSelected == null)
             {
-                currB.BackgroundColor = Color.Blue;
-                currB.StyleId = "Blue";
                 currPieceSelected = currB;
+                currB.BackgroundColor = Color.Blue;
             }
 
-            else if (currB.StyleId == "Blue")
+            //Deselect
+            else
             {
-                currB.BackgroundColor = Color.Red;
-                currB.StyleId = "Red";
+                //Deselecting Piece
                 currPieceSelected = null;
+
+                //Changing back Colour
+                //White
+                if(currB.StyleId.Contains("White"))
+                {
+                    currB.BackgroundColor = Color.White;
+                }
+
+                //Black
+                if (currB.StyleId.Contains("Black"))
+                {
+                    currB.BackgroundColor = Color.Red;
+                }
             }
         }
     }
