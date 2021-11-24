@@ -11,8 +11,19 @@ namespace Checkers
     public partial class MainPage : ContentPage
     {
         //Declare Constants
+        //Pieces
+        const string CAPTURED_BLACK_SL = "CapturedBlackPiece";
+        const string CAPTURED_WHITE_SL = "CapturedWhitePiece";
+        const string COUNT_CAP_BLACK_LBL = "CountCapturedBlackPieces";
+        const string COUNT_CAP_WHITE_LBL = "CountCapturedWhitePieces";
+
+        //Board Size
         const int NUM_ROWS = 10, NUM_COLS = 10; //Game SetUP
         const int BOARD_ROWS = 8, BOARD_COLS = 8; //Game Board
+
+        //Boxview
+        BoxView currPieceSelected;
+
 
         //Global Variables for Starting Positions
         int[][] _startBlack = new int[3][] { new int[] {1, 3, 5, 7}, 
@@ -23,7 +34,6 @@ namespace Checkers
                                              new int[] {1, 3, 5, 7},
                                              new int[] {2, 4, 6, 8} };
 
-        BoxView currPieceSelected;
 
         public MainPage()
         {
@@ -46,11 +56,13 @@ namespace Checkers
 
             //Create Squares and Pieces on Board
             CreateSquaresOnBoard();
+
             //Black Pieces
             CreatePlayerPieces(Color.Red,
                                "BlackPiece",
                                _startBlack,
                                6);
+
             //White Pieces
             CreatePlayerPieces(Color.White,
                                "WhitePiece",
@@ -59,14 +71,14 @@ namespace Checkers
 
             //Just to Clear
             currPieceSelected = null;
-        }
+        }//End SetUpBoard
 
         //Create Player Pieces
         private void CreatePlayerPieces(Color colour, string styleID, 
                                         int[][] startPosition, int startRow)
         {
             //Declare Variables
-            int r, c;
+            int r, startArrayCol, startArrayRow;
 
             //Tapped Gesture
             TapGestureRecognizer t = new TapGestureRecognizer();
@@ -78,10 +90,11 @@ namespace Checkers
 
             #region Loop for Pieces
             //Loop for Pieces
-            for (r = 0; r < 3; r++)
+            startArrayRow = 0;
+            for (r = startRow; r < startRow + 3; r++)
             {
                 //c is the index in array
-                for(c = 0; c < 4; c++)
+                for(startArrayCol = 0; startArrayCol < 4; startArrayCol++)
                 {
                     //Create Pieces
                     b = new BoxView();
@@ -94,17 +107,18 @@ namespace Checkers
                     b.CornerRadius = 20;
 
                     //Piece Grid Properties
-                    b.SetValue(Grid.RowProperty, r + startRow);
-                    b.SetValue(Grid.ColumnProperty, startPosition[r][c]);
+                    b.SetValue(Grid.RowProperty, r);
+                    b.SetValue(Grid.ColumnProperty, startPosition[startArrayRow][startArrayCol]);
 
                     b.GestureRecognizers.Add(t);
 
                     //Add Boxview to collection Children on the grid
                     GrdGameLayout.Children.Add(b);
                 }
-                #endregion
+                startArrayRow++;
             }
-        }//End Create Piece
+            #endregion
+        }//End CreatePlayerPiece
 
 
         //Create Squares on Board
@@ -145,10 +159,55 @@ namespace Checkers
                     sq.StyleId = "BoardSquare";
                     GrdGameLayout.Children.Add(sq);
                 }
-            }
-        }
+            }//End For Loop
 
-        //Move to Square
+            #region CapturedPieces
+            //Stack Layout for Captured Pieces
+            //Declare
+            StackLayout sl;
+            Label lbl;
+
+            //Black Pieces
+            sl = new StackLayout();
+            sl.SetValue(Grid.RowProperty, 1);
+            sl.SetValue(Grid.ColumnProperty, 0);
+            sl.StyleId = CAPTURED_BLACK_SL; 
+
+            //Label
+            lbl = new Label();
+            lbl.Text = "";
+            lbl.TextColor = Color.White;
+            lbl.FontAttributes = FontAttributes.Bold;
+            lbl.HorizontalOptions = LayoutOptions.Center;
+            // "CountCapturedBlackPieces"
+            lbl.StyleId = COUNT_CAP_BLACK_LBL;
+            
+            //Add to Stacklayout and Grid Children
+            sl.Children.Add(lbl);
+            GrdGameLayout.Children.Add(sl);
+
+            //White Pieces
+            sl = new StackLayout();
+            sl.SetValue(Grid.RowProperty, 8);
+            sl.SetValue(Grid.ColumnProperty, 0);
+            sl.StyleId = CAPTURED_WHITE_SL;
+            
+            //Label
+            lbl = new Label();
+            lbl.Text = "";
+            lbl.TextColor = Color.White;
+            lbl.FontAttributes = FontAttributes.Bold;
+            lbl.HorizontalOptions = LayoutOptions.Center;
+            lbl.StyleId = COUNT_CAP_WHITE_LBL;
+
+            //Add to Stacklayout and Grid Children
+            sl.Children.Add(lbl);
+            GrdGameLayout.Children.Add(sl);
+
+            #endregion
+        }//End CreateSquaresOnBoard
+
+        //Square Tapped
         private void Square_Tapped(object sender, EventArgs e)
         {
             //is there a current piece selected
@@ -158,51 +217,187 @@ namespace Checkers
             //Move current piece
             BoxView currSq = (BoxView)sender;
 
+            //Where Trying to move to
+            MoveSelectedPieceTo((int)currSq.GetValue(Grid.RowProperty),
+                        (int)currSq.GetValue(Grid.ColumnProperty));
+                //Can create variables and use them instead
+        }//End Square_Tapped
+
+        //Move Piece To
+        private void MoveSelectedPieceTo(int destRow, int destColumn)
+        {
             //Can only Move diagonally
-            int sq_r, sq_c, piece_Row, piece_Col;
+            int piece_Row, piece_Col;
+
+            //Multiplier for Up or Down Moving
             int multiplier = -1;//Default moving down
 
-            if (currPieceSelected.StyleId == "BlackPiece")
+            if (currPieceSelected.StyleId.Contains("Black"))
                 multiplier = 1;//Moving up
-
-            #region MoveThePiece
-            //Where Trying to move to
-            sq_r = (int)currSq.GetValue(Grid.RowProperty);
-            sq_c = (int)currSq.GetValue(Grid.ColumnProperty);
 
             //Piece Place
             piece_Row = (int)currPieceSelected.GetValue(Grid.RowProperty);
             piece_Col = (int)currPieceSelected.GetValue(Grid.ColumnProperty);
 
+            #region MoveThePiece
             //Square Occupied
-            if (IsSquareOccupied(sq_r, sq_c) == true) return;
+            if (IsSquareOccupied(destRow, destColumn) == true) return;
+
+            //If JumpMove
+            if (IsThisAJump(destRow, destColumn, multiplier) == true) return;
 
             //Only for Upwards
             //If Trying to move more than 1 Diagonally away- Return
-            if (sq_r + (1 * multiplier) != piece_Row) return;
-            if ((sq_c - 1 != piece_Col) && (sq_c + 1 != piece_Col)) return;
+            if (destRow + (1 * multiplier) != piece_Row) return;
+            if ((destColumn - 1 != piece_Col) && (destColumn + 1 != piece_Col)) return;
 
             //Get and Set Grid properties
-            currPieceSelected.SetValue(Grid.RowProperty, currSq.GetValue(Grid.RowProperty));
-            currPieceSelected.SetValue(Grid.ColumnProperty, currSq.GetValue(Grid.ColumnProperty));
+            currPieceSelected.SetValue(Grid.RowProperty, destRow);
+            currPieceSelected.SetValue(Grid.ColumnProperty, destColumn);
 
-            //Reset Piece back
-            //White
-            if (currPieceSelected.StyleId.Contains("White"))
-            {
-                currPieceSelected.BackgroundColor = Color.White;
-            }
+            //King
+            if (destRow == 1 || destRow == 8)
+                MakeMeAKing();
 
-            //Black
-            if (currPieceSelected.StyleId.Contains("Black"))
-            {
-                currPieceSelected.BackgroundColor = Color.Red;
-            }
+            //Reset Piece
+            ResetCurrentSelectedPiece();
             #endregion
 
             //Then set current selected to null
             currPieceSelected = null;
-        }
+        }//End MovePieceTo
+
+        //Is a Jump
+        private bool IsThisAJump(int destR, int destC,int direction)
+        {
+            //Declare Variables
+            bool IsJump = false;
+            int originRow, originColumn;
+            int diffRow = 0, diffColumn = 0;
+
+            //Set Origin
+            originRow = (int)currPieceSelected.GetValue(Grid.RowProperty);
+            originColumn = (int)currPieceSelected.GetValue(Grid.ColumnProperty);
+
+            //Set Difference in Rows & Columns
+            diffRow = destR - originRow;
+            diffColumn = destC - originColumn;
+
+            //Bug Fixing for Jumping
+            if (destR + (2 * direction) == originRow)
+            {
+                if ((Math.Abs(diffRow) == 2) && (Math.Abs(diffColumn) == 2))
+                {  
+                    //Check for a piece in the middle.
+                    if (IsSquareOccupied((diffRow / 2) + originRow, (diffColumn / 2) + originColumn) == true)
+                    {   
+                        BoxView removePiece = GetThisPiece((diffRow / 2) + originRow, (diffColumn / 2) + originColumn);
+
+                        //Check If Same Team
+                        if (removePiece.StyleId != currPieceSelected.StyleId)
+                        {
+                            //Move Jumping Piece
+                            currPieceSelected.SetValue(Grid.RowProperty, destR);
+                            currPieceSelected.SetValue(Grid.ColumnProperty, destC);
+
+                            //Reset
+                            ResetCurrentSelectedPiece();
+
+                            //Remove Piece
+                            RemoveCapturedPieceFromBoard(removePiece);
+
+                            //Set Return Variable
+                            IsJump = true;
+                        }
+                    } //End if(IsSquareOccupied((diffRow / 2)
+                } //End if((Math.Abs(diffRow) == 2
+            } //End if((diffRow < 0 && direction < 0)
+
+            //Return
+            return IsJump;
+        }//End IsAJump
+
+        //Remove Captured Piece
+        private void RemoveCapturedPieceFromBoard(BoxView piece)
+        {
+            //Declare
+            StackLayout slCaptured = null;
+            Label lblCaptured = null;
+
+            //Black Piece is default
+            string whichSL = CAPTURED_BLACK_SL;
+            string whichLBL = COUNT_CAP_BLACK_LBL;
+
+            //White Piece
+            if(piece.StyleId.Contains("White"))
+            {
+                whichSL = CAPTURED_WHITE_SL;
+                whichLBL = COUNT_CAP_WHITE_LBL;
+            }
+
+            //Check Board for Piece
+            foreach (var c in GrdGameLayout.Children)
+            {
+                if (c.StyleId == whichSL)
+                {
+                    //Found Stacklayout
+                    slCaptured = (StackLayout)c;
+
+                    //Find the label in the children of the stack layout
+                    foreach (var l in slCaptured.Children)
+                    {
+                        if (l.StyleId == whichLBL)
+                        {
+                            lblCaptured = (Label)l;
+                            break;
+                        }
+                    }
+                }
+            }//End Foreach
+
+            //Set Row and Column to Null
+            piece.SetValue(Grid.RowProperty, null);
+            piece.SetValue(Grid.ColumnProperty, null);
+            GrdGameLayout.Children.Remove(piece);
+
+            //Add to StackLayout
+            slCaptured.Children.Add(piece);
+
+            //Update Label with Count Pieces
+            lblCaptured.Text = (slCaptured.Children.Count -1).ToString();
+
+            //Make Invisible
+            if (slCaptured.Children.Count > 2)
+                piece.IsVisible = false;
+
+            //Remove Tap
+            piece.GestureRecognizers.Clear();
+        }//End RemoveCapturedPiece
+
+        //Get This Piece
+        private BoxView GetThisPiece(int row, int column)
+        {
+            //Boxview
+            BoxView b = null;
+
+            //Check Grid Children for "Piece"
+            foreach(var piece in GrdGameLayout.Children)
+            {
+                if(piece.StyleId.Contains("Piece"))
+                {
+                    if(row == (int)piece.GetValue(Grid.RowProperty) &&
+                       column == (int)piece.GetValue(Grid.ColumnProperty))
+                    {
+                        //Piece Found
+                        b = (BoxView)piece;
+                        break;
+                    }
+                }
+            }//End Foreach
+
+            //Return
+            return b;
+        }//End GetThisPiece
 
         //Square Occupied
         private bool IsSquareOccupied(int sq_r, int sq_c)
@@ -220,14 +415,26 @@ namespace Checkers
                     //If a piece is on the square
                     if(sq_r == (int)piece.GetValue(Grid.RowProperty) && sq_c == (int)piece.GetValue(Grid.ColumnProperty))
                     {
+                        //Set return
                         isOccupied = true;
                         break;
                     }
                 }
             }
 
+            //Return
             return isOccupied;
-        }
+        }//End IsSquareOccupied
+
+        //Reset Current Piece
+        private void ResetCurrentSelectedPiece()
+        {
+            //If no Piece Selected
+            if (currPieceSelected == null) return;
+
+            //If Piece Selected
+            currPieceSelected.Opacity = 1;
+        }//End ResetCurrrentPiece
 
         //Tapped Event
         private void Piece_Tapped(object sender, EventArgs e)
@@ -236,10 +443,20 @@ namespace Checkers
             BoxView currB = (BoxView)sender;
 
             //Select Piece
-            if(currPieceSelected == null)
+            SelectThisPiece(currB);
+        }//End Piece_Tapped
+
+        //Select This Piece
+        private void SelectThisPiece(BoxView thisOne)
+        {
+            //Select Piece
+            if (currPieceSelected == null)
             {
-                currPieceSelected = currB;
-                currB.BackgroundColor = Color.Blue;
+                //This Piece is Selected
+                currPieceSelected = thisOne;
+
+                //Change Opacity
+                currPieceSelected.Opacity = 0.7;
             }
 
             //Deselect
@@ -248,19 +465,26 @@ namespace Checkers
                 //Deselecting Piece
                 currPieceSelected = null;
 
-                //Changing back Colour
-                //White
-                if(currB.StyleId.Contains("White"))
-                {
-                    currB.BackgroundColor = Color.White;
-                }
-
-                //Black
-                if (currB.StyleId.Contains("Black"))
-                {
-                    currB.BackgroundColor = Color.Red;
-                }
+                //Reset Piece Selected
+                ResetCurrentSelectedPiece();
             }
+        }//End SelectThisPiece
+
+        //Make King
+        private void MakeMeAKing()
+        {
+            //Declare Variables
+            double r = currPieceSelected.BackgroundColor.R;
+            double g = currPieceSelected.BackgroundColor.G;
+            double b = currPieceSelected.BackgroundColor.B;
+
+            //Set BackgroundColour
+            currPieceSelected.BackgroundColor = new Color(r * 0.75,
+                                                          g * 0.75,
+                                                          b * 0.75);
+
+            //Set StyleId to King
+            currPieceSelected.StyleId = "King" + currPieceSelected.StyleId;
         }
-    }
-}
+    }//End Main
+}//End Namespace
